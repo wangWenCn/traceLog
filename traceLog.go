@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"context"
 	"runtime"
+	"sync"
 )
 
-var (
-	ContextMap = make(map[string]context.Context)
-)
+var contextMap = sync.Map{}
 
 func getGoroutineID() string {
 	var buf [64]byte
@@ -17,13 +16,21 @@ func getGoroutineID() string {
 }
 
 func GetGoroutineContext() context.Context {
-	return ContextMap[getGoroutineID()]
+	value, ok := contextMap.Load(getGoroutineID())
+	if !ok {
+		return nil
+	}
+	ctx, ok := value.(context.Context)
+	if !ok {
+		return nil
+	}
+	return ctx
 }
 
 func SetGoroutineContext(ctx context.Context) {
-	ContextMap[getGoroutineID()] = ctx
+	contextMap.Store(getGoroutineID(), ctx)
 }
 
 func DelGoroutineContext() {
-	delete(ContextMap, getGoroutineID())
+	contextMap.Delete(getGoroutineID())
 }
